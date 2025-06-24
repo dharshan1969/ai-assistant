@@ -1,23 +1,27 @@
 {
   "version": 2,
-  "buildCommand": "./build.sh",
+  "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "/index.js"
+      "dest": "dist/index.js"
     },
     {
       "src": "/(.*)",
-      "dest": "/public/$1"
+      "dest": "/index.html"
     }
   ],
-  "env": {
-    "NODE_ENV": "production"
-  },
   "functions": {
-    "index.js": {
+    "dist/index.js": {
+      "runtime": "nodejs18.x",
       "maxDuration": 30
     }
+  },
+  "env": {
+    "NODE_ENV": "production",
+    "PORT": "5000",
+    "OPENAI_API_KEY": "@openai_api_key",
+    "DATABASE_URL": "@database_url"
   }
 }
