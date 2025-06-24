@@ -1,14 +1,6 @@
 import OpenAI from "openai";
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-});
-
-// Validate API key on startup
-if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === "your-openai-api-key-here") {
-  console.warn("Warning: OpenAI API key not properly configured. Demo mode will be used.");
-}
 
 export interface AIAssistantRequest {
   input: string;
@@ -46,38 +38,21 @@ Always keep the tone human-friendly, clear, and relevant to the task. Respond ac
 User: ${userInput}`;
 };
 
-// Demo responses for when OpenAI API is unavailable
-const demoResponses = {
-  question: {
-    "What is the largest planet in our solar system?": "Jupiter is the largest planet in our solar system. It's a gas giant with a mass more than twice that of all other planets combined. Jupiter has a diameter of about 142,984 kilometers (88,846 miles), which is about 11 times wider than Earth.",
-    "What is the capital of France?": "The capital of France is Paris. Paris is located in the north-central part of France and is the country's largest city, known for iconic landmarks like the Eiffel Tower, Louvre Museum, and Notre-Dame Cathedral.",
-    "What is machine learning?": "Machine learning is a subset of artificial intelligence (AI) that enables computers to learn and make decisions from data without being explicitly programmed for every task. It uses algorithms to identify patterns in data and make predictions or decisions based on those patterns."
-  },
-  summary: {
-    default: "**Summary:** The provided text discusses artificial intelligence as a transformative technology that's reshaping industries worldwide. Key points include:\n\n• AI automates complex processes and improves decision-making\n• It creates new opportunities for innovation across sectors\n• The technology requires understanding of data patterns and algorithms\n• Implementation involves both technical and strategic considerations\n\nThe text emphasizes AI's broad impact on modern business and society."
-  },
-  creative: {
-    "Write a short story about a brave squirrel who saves its forest from a fire": "**The Forest Guardian**\n\nNutkin was just an ordinary squirrel until the day smoke filled the morning air. While other woodland creatures fled in panic, Nutkin noticed something crucial - the fire was spreading toward the old oak where hundreds of animals had taken shelter.\n\nRacing through the treetops faster than ever before, Nutkin remembered the hidden stream that ran beneath the forest floor. With quick thinking and quicker paws, Nutkin gnawed through strategic branches to create a natural dam, redirecting the water to create a protective barrier.\n\nBy sunset, the fire had been contained, and the forest was safe. Nutkin learned that courage isn't about size - it's about heart.",
-    "Write a short poem about autumn": "**Autumn's Embrace**\n\nGolden leaves dance on crisp morning air,\nWhispering secrets of summer's farewell.\nCrimson and amber paint landscapes fair,\nAs nature prepares for winter's spell.\n\nHarvest moon rises, full and bright,\nGuiding geese southward on their flight.\nAutumn's gentle, fleeting grace—\nA season's warm, embracing face."
-  },
-  advice: {
-    "How can I stay focused while preparing for exams?": "**Effective Exam Preparation Strategies:**\n\n**Environment Setup:**\n• Create a dedicated, clutter-free study space\n• Minimize distractions (phone, social media, noise)\n• Ensure good lighting and comfortable temperature\n\n**Time Management:**\n• Use the Pomodoro Technique (25 minutes focused study, 5-minute breaks)\n• Create a realistic study schedule with specific goals\n• Prioritize difficult subjects during your peak energy hours\n\n**Study Techniques:**\n• Practice active recall instead of just re-reading\n• Create summary notes and mind maps\n• Form study groups for discussion and accountability\n\n**Self-Care:**\n• Maintain regular sleep schedule (7-8 hours)\n• Take regular breaks and exercise\n• Stay hydrated and eat nutritious meals",
-    "How can I improve study habits?": "**Building Better Study Habits:**\n\n**Consistency is Key:**\n• Set regular study times and stick to them\n• Start with small, manageable sessions (30-45 minutes)\n• Gradually increase duration as habits form\n\n**Active Learning:**\n• Summarize information in your own words\n• Teach concepts to someone else\n• Use flashcards for memorization\n• Practice problem-solving regularly\n\n**Organization:**\n• Keep all materials in designated places\n• Use planners or digital apps to track assignments\n• Break large projects into smaller tasks\n• Review and adjust methods regularly\n\n**Health & Wellness:**\n• Maintain consistent sleep schedule\n• Take breaks every hour\n• Stay physically active\n• Reward yourself for meeting goals"
-  }
-};
-
 export async function processAIRequest(request: AIAssistantRequest): Promise<AIAssistantResponse> {
   // Check if API key is available
   if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === "your-openai-api-key-here") {
-    console.log("No valid API key found, using demo mode");
-    return getDemoResponse(request);
+    throw new Error("OpenAI API key is required but not configured. Please add your API key.");
   }
 
   try {
-    // Try OpenAI API first
+    // Create OpenAI instance with current API key
+    const openaiClient = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY
+    });
+    
     const prompt = createUltimatePrompt(request.input);
     
-    const response = await openai.chat.completions.create({
+    const response = await openaiClient.chat.completions.create({
       model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
       messages: [
         {
@@ -98,56 +73,12 @@ export async function processAIRequest(request: AIAssistantRequest): Promise<AIA
   } catch (error) {
     console.error("OpenAI API Error:", error);
     
-    // If it's a quota/rate limit error, use demo mode
-    if (error instanceof Error && (error.message.includes('quota') || error.message.includes('429'))) {
-      console.log("Using demo mode due to API quota/rate limit exceeded");
-      return getDemoResponse(request);
-    }
-    
     if (error instanceof Error) {
       throw new Error(`AI Service Error: ${error.message}`);
     }
     
     throw new Error("Failed to process AI request. Please check your API configuration.");
   }
-}
-
-function getDemoResponse(request: AIAssistantRequest): AIAssistantResponse {
-  const userInput = request.input.replace(/^\[\w+\]\s*/, '').trim();
-  
-  // Check for exact matches first
-  if (demoResponses[request.taskType] && demoResponses[request.taskType][userInput]) {
-    return {
-      response: demoResponses[request.taskType][userInput],
-      taskType: request.taskType
-    };
-  }
-  
-  // Check for partial matches in questions
-  if (request.taskType === 'question') {
-    for (const [question, answer] of Object.entries(demoResponses.question)) {
-      if (userInput.toLowerCase().includes(question.toLowerCase().split(' ')[2]) || 
-          question.toLowerCase().includes(userInput.toLowerCase().split(' ')[0])) {
-        return {
-          response: answer,
-          taskType: request.taskType
-        };
-      }
-    }
-  }
-  
-  // Default responses by task type
-  const defaultResponses = {
-    question: "I can help answer factual questions on a wide variety of topics. Try asking me about science, history, geography, technology, or any other subject you're curious about.",
-    summary: demoResponses.summary.default,
-    creative: "I can help create stories, poems, essays, and other creative content. Give me a creative prompt and I'll craft something engaging for you.",
-    advice: "I can provide practical advice and suggestions on many topics including study habits, productivity, career guidance, and personal development. What would you like advice about?"
-  };
-  
-  return {
-    response: defaultResponses[request.taskType],
-    taskType: request.taskType
-  };
 }
 
 // Alternative prompts for demonstration of prompt engineering varieties
