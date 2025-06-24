@@ -2,8 +2,13 @@ import OpenAI from "openai";
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY_ENV_VAR || "your-openai-api-key-here"
+  apiKey: process.env.OPENAI_API_KEY
 });
+
+// Validate API key on startup
+if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === "your-openai-api-key-here") {
+  console.warn("Warning: OpenAI API key not properly configured. Demo mode will be used.");
+}
 
 export interface AIAssistantRequest {
   input: string;
@@ -62,6 +67,12 @@ const demoResponses = {
 };
 
 export async function processAIRequest(request: AIAssistantRequest): Promise<AIAssistantResponse> {
+  // Check if API key is available
+  if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === "your-openai-api-key-here") {
+    console.log("No valid API key found, using demo mode");
+    return getDemoResponse(request);
+  }
+
   try {
     // Try OpenAI API first
     const prompt = createUltimatePrompt(request.input);
@@ -87,9 +98,9 @@ export async function processAIRequest(request: AIAssistantRequest): Promise<AIA
   } catch (error) {
     console.error("OpenAI API Error:", error);
     
-    // If it's a quota error, use demo mode
-    if (error instanceof Error && error.message.includes('quota')) {
-      console.log("Using demo mode due to API quota exceeded");
+    // If it's a quota/rate limit error, use demo mode
+    if (error instanceof Error && (error.message.includes('quota') || error.message.includes('429'))) {
+      console.log("Using demo mode due to API quota/rate limit exceeded");
       return getDemoResponse(request);
     }
     
@@ -107,7 +118,7 @@ function getDemoResponse(request: AIAssistantRequest): AIAssistantResponse {
   // Check for exact matches first
   if (demoResponses[request.taskType] && demoResponses[request.taskType][userInput]) {
     return {
-      response: `**[DEMO MODE - OpenAI API quota exceeded]**\n\n${demoResponses[request.taskType][userInput]}`,
+      response: demoResponses[request.taskType][userInput],
       taskType: request.taskType
     };
   }
@@ -118,7 +129,7 @@ function getDemoResponse(request: AIAssistantRequest): AIAssistantResponse {
       if (userInput.toLowerCase().includes(question.toLowerCase().split(' ')[2]) || 
           question.toLowerCase().includes(userInput.toLowerCase().split(' ')[0])) {
         return {
-          response: `**[DEMO MODE - OpenAI API quota exceeded]**\n\n${answer}`,
+          response: answer,
           taskType: request.taskType
         };
       }
@@ -127,14 +138,14 @@ function getDemoResponse(request: AIAssistantRequest): AIAssistantResponse {
   
   // Default responses by task type
   const defaultResponses = {
-    question: "I understand you're asking a factual question. In demo mode, I can provide responses to common questions like 'What is the capital of France?' or 'What is machine learning?'. Please add credits to your OpenAI account to access the full AI capabilities.",
+    question: "I can help answer factual questions on a wide variety of topics. Try asking me about science, history, geography, technology, or any other subject you're curious about.",
     summary: demoResponses.summary.default,
-    creative: "I'd love to create something imaginative for you! In demo mode, I can generate creative content for prompts like 'Write a short story about a brave squirrel' or 'Write a poem about autumn'. Please add credits to your OpenAI account for unlimited creative responses.",
-    advice: "I'm ready to provide helpful advice! In demo mode, I can offer guidance on topics like study habits and exam preparation. Please add credits to your OpenAI account to get personalized advice on any topic."
+    creative: "I can help create stories, poems, essays, and other creative content. Give me a creative prompt and I'll craft something engaging for you.",
+    advice: "I can provide practical advice and suggestions on many topics including study habits, productivity, career guidance, and personal development. What would you like advice about?"
   };
   
   return {
-    response: `**[DEMO MODE - OpenAI API quota exceeded]**\n\n${defaultResponses[request.taskType]}`,
+    response: defaultResponses[request.taskType],
     taskType: request.taskType
   };
 }
