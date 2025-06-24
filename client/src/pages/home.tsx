@@ -27,6 +27,25 @@ export default function Home() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Demo Notice */}
+        <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-6 mb-6">
+          <div className="flex items-start space-x-3">
+            <i className="fas fa-exclamation-triangle text-amber-600 text-lg mt-1"></i>
+            <div>
+              <h3 className="font-semibold text-amber-800 mb-2">Demo Mode Active</h3>
+              <p className="text-sm text-amber-700 mb-3">
+                Your OpenAI API quota has been exceeded. The assistant is running in demo mode with pre-written responses to showcase functionality.
+              </p>
+              <div className="bg-amber-100 p-3 rounded-lg text-sm text-amber-800">
+                <strong>To enable full AI functionality:</strong>
+                <br />1. Visit your OpenAI dashboard
+                <br />2. Add credits or upgrade your plan
+                <br />3. Your assistant will automatically switch to live AI mode
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Instructions Section */}
         <div className="bg-gradient-to-r from-primary/5 to-secondary/5 rounded-xl p-6 mb-8">
           <h2 className="text-xl font-semibold text-slate-900 mb-3">
