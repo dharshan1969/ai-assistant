@@ -92,10 +92,12 @@ The application follows a full-stack architecture with clear separation between 
 - **Ports**: Frontend on 5000, external port 80
 - **Modules**: Node.js 20, PostgreSQL 16, web environment
 
-## Changelog
+## Recent Changes
 
-Changelog:
-- June 24, 2025. Initial setup
+- June 24, 2025: Initial AI Assistant setup with prompt engineering system
+- June 24, 2025: Implemented demo mode fallback for OpenAI quota issues  
+- June 24, 2025: Updated OpenAI API key, switched back to live AI mode
+- June 24, 2025: All functionality confirmed working (bracket notation, feedback, stats)
 
 ## User Preferences
 
