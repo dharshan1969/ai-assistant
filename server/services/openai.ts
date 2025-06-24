@@ -47,13 +47,15 @@ export async function processAIRequest(request: AIAssistantRequest): Promise<AIA
   try {
     // Create OpenAI instance with current API key
     const openaiClient = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY
+      apiKey: process.env.OPENAI_API_KEY,
+      timeout: 30000, // 30 second timeout
     });
     
     const prompt = createUltimatePrompt(request.input);
+    console.log(`Processing ${request.taskType} request: ${request.input.substring(0, 100)}...`);
     
     const response = await openaiClient.chat.completions.create({
-      model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+      model: "gpt-4o-mini", // Use more cost-effective model to avoid quota issues
       messages: [
         {
           role: "user",
@@ -65,13 +67,25 @@ export async function processAIRequest(request: AIAssistantRequest): Promise<AIA
     });
 
     const aiResponse = response.choices[0]?.message?.content || "I apologize, but I couldn't generate a response. Please try again.";
+    console.log(`Successfully generated response for ${request.taskType} request`);
 
     return {
       response: aiResponse,
       taskType: request.taskType
     };
-  } catch (error) {
+  } catch (error: any) {
     console.error("OpenAI API Error:", error);
+    
+    // Provide specific error messages for different scenarios
+    if (error?.status === 429) {
+      throw new Error("OpenAI API quota exceeded. Please add credits to your OpenAI account or wait for quota reset.");
+    } else if (error?.status === 401) {
+      throw new Error("Invalid OpenAI API key. Please check your API key is correct and active.");
+    } else if (error?.status === 403) {
+      throw new Error("OpenAI API access forbidden. Please verify your API key permissions.");
+    } else if (error?.code === 'insufficient_quota') {
+      throw new Error("OpenAI account has insufficient quota. Please add credits to your OpenAI account.");
+    }
     
     if (error instanceof Error) {
       throw new Error(`AI Service Error: ${error.message}`);
